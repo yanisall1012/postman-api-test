@@ -1,0 +1,73 @@
+image: node:22
+
+stages:
+  - test
+
+tests_api:
+  stage: test
+
+  before_script:
+    - node -v
+    - npm -v
+    - npm install newman newman-reporter-htmlextra nodemailer --no-save
+    - mkdir -p reports
+
+  script:
+    - npx newman run collections/CollectionClient2.postman_collection.json
+      -e environments/PP.postman_environment.json
+      --reporters cli,htmlextra
+      --reporter-htmlextra-export reports/report.html
+
+  after_script:
+    - |
+      cat > send-mail.js <<'EOF'
+      const nodemailer = require("nodemailer");
+      const fs = require("fs");
+
+      const transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.MAIL_USERNAME,
+          pass: process.env.MAIL_PASSWORD
+        }
+      });
+
+      const body =
+        "Bonjour,\n\n" +
+        "Les tests API Postman ont ete executes via GitLab CI/CD.\n\n" +
+        "Projet : " + process.env.CI_PROJECT_PATH + "\n" +
+        "Branche : " + process.env.CI_COMMIT_BRANCH + "\n" +
+        "Commit : " + process.env.CI_COMMIT_SHA + "\n" +
+        "Statut du job : " + process.env.CI_JOB_STATUS + "\n\n" +
+        "Le rapport HTML est joint a ce mail.\n\n" +
+        "Cordialement,\nGitLab CI/CD";
+
+      transporter.sendMail({
+        from: process.env.MAIL_USERNAME,
+        to: process.env.MAIL_TO,
+        subject: "Rapport Newman - " + process.env.CI_JOB_STATUS,
+        text: body,
+        attachments: [
+          {
+            filename: "report.html",
+            path: "reports/report.html"
+          }
+        ]
+      }, (err, info) => {
+        if (err) {
+          console.error("Email error:", err);
+        } else {
+          console.log("Email sent:", info.response);
+        }
+      });
+      EOF
+
+      node send-mail.js
+
+  artifacts:
+    when: always
+    paths:
+      - reports/report.html
+    expire_in: 7 days
