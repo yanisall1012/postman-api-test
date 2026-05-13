@@ -76,4 +76,4 @@ jobs:
 
             📎 Rapport HTML généré par Newman et attaché à cet email.
 
-          attachments: ./reports/report.html
+          attachments: reports/report.html
