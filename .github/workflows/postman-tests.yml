@@ -15,19 +15,23 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Install Newman
+        shell: pwsh
         run: |
           npm install -g newman
           npm install -g newman-reporter-htmlextra
 
       - name: Create reports folder
-        run: mkdir reports
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force reports
 
       - name: Run Postman Collection
         shell: pwsh
