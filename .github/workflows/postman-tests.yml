@@ -4,15 +4,11 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 jobs:
   newman-tests:
-    runs-on: windows-latest
-
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: ubuntu-latest        # ← changé : ubuntu évite les bugs de chemin Windows
 
     steps:
       - name: Checkout repository
@@ -24,24 +20,24 @@ jobs:
           node-version: 22
 
       - name: Install Newman
-        shell: pwsh
         run: |
           npm install -g newman
           npm install -g newman-reporter-htmlextra
 
       - name: Create reports folder
-        shell: pwsh
-        run: New-Item -ItemType Directory -Force reports
+        run: mkdir -p reports
 
       - name: Run Postman Collection
-        shell: pwsh
         run: |
-          newman run "collections/CollectionClient2.postman_collection.json" `
-            -e "environments/PP.postman_environment.json" `
-            -r cli,htmlextra `
+          newman run "collections/CollectionClient2.postman_collection.json" \
+            -e "environments/PP.postman_environment.json" \
+            -r cli,htmlextra \
             --reporter-htmlextra-export "reports/report.html"
 
-      - name: Upload HTML Report (backup)
+      - name: Verify report exists
+        run: ls -la reports/
+
+      - name: Upload HTML Report (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: newman-report
@@ -53,23 +49,10 @@ jobs:
           server_address: smtp.gmail.com
           server_port: 587
           secure: false
-
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-
-          subject: GitHub Actions - Newman Report - ${{ job.status }}
-
+          subject: "GitHub Actions - Newman Report - ${{ job.status }}"
           to: yanisall1012@gmail.com
-          from: GitHub Actions
-
-          body: |
-            🧪 Résultats des tests Postman (Newman)
-
-            📁 Repository :
-            https://github.com/yanisall1012/postman-api-test
-
-            📊 Status : ${{ job.status }}
-
-            📎 Le rapport HTML est attaché à cet email.
-
-          attachments: reports/report.html
+          from: GitHub Actions <${{ secrets.EMAIL_USERNAME }}>
+          html_body: file://reports/report.html
+          attachments: ${{ github.workspace }}/reports/report.html
