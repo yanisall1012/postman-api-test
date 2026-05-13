@@ -41,26 +41,35 @@ jobs:
             -r cli,htmlextra `
             --reporter-htmlextra-export "reports/report.html"
 
-      - name: Verify report exists
-        shell: pwsh
-        run: Get-ChildItem -Recurse reports
-
       - name: Upload HTML Report (backup)
         uses: actions/upload-artifact@v4
         with:
           name: newman-report
           path: reports/report.html
 
-     - name: Send Email with HTML Report
-  uses: dawidd6/action-send-mail@v3
-  with:
-    server_address: smtp.gmail.com
-    server_port: 587
-    secure: false
-    username: ${{ secrets.EMAIL_USERNAME }}
-    password: ${{ secrets.EMAIL_PASSWORD }}
-    subject: "GitHub Actions - Newman Report - ${{ job.status }}"
-    to: yanisall1012@gmail.com
-    from: GitHub Actions
-    html_body: file://reports/report.html
-    attachments: reports/report.html
+      - name: Send Email with HTML Report
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: false
+
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+
+          subject: GitHub Actions - Newman Report - ${{ job.status }}
+
+          to: yanisall1012@gmail.com
+          from: GitHub Actions
+
+          body: |
+            🧪 Résultats des tests Postman (Newman)
+
+            📁 Repository :
+            https://github.com/yanisall1012/postman-api-test
+
+            📊 Status : ${{ job.status }}
+
+            📎 Le rapport HTML est attaché à cet email.
+
+          attachments: reports/report.html
