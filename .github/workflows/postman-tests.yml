@@ -52,7 +52,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "GitHub Actions - Newman Report - ${{ job.status }}"
-          to: yanisall1012@gmail.com, y.djamel@dsyconsulting.fr
+          to: yanisall1012@gmail.com
           from: GitHub Actions <${{ secrets.EMAIL_USERNAME }}>
           html_body: file://reports/report.html
           attachments: ${{ github.workspace }}/reports/report.html
