@@ -43,8 +43,7 @@ jobs:
 
       - name: Verify report exists
         shell: pwsh
-        run: |
-          Get-ChildItem -Recurse reports
+        run: Get-ChildItem -Recurse reports
 
       - name: Upload HTML Report (backup)
         uses: actions/upload-artifact@v4
@@ -68,11 +67,13 @@ jobs:
           from: GitHub Actions
 
           body: |
-            Les tests Postman sont terminés.
+            🧪 Résultats des tests Postman (Newman)
 
-            Repository :
+            📁 Repository :
             https://github.com/yanisall1012/postman-api-test
 
-            📊 Rapport HTML joint à cet email.
+            📊 Status du job : ${{ job.status }}
+
+            📎 Rapport HTML généré par Newman et attaché à cet email.
 
           attachments: ./reports/report.html
