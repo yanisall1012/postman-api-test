@@ -8,73 +8,49 @@ on:
   workflow_dispatch:
 
 jobs:
-
   newman-tests:
-
     runs-on: windows-latest
 
-    steps:
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      # 1 - Clone repository
-      - name: Checkout Repository
+    steps:
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2 - Install Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      # 3 - Verify versions
-      - name: Verify Node and npm
-        run: |
-          node -v
-          npm -v
-
-      # 4 - Install Newman
       - name: Install Newman
         run: |
           npm install -g newman
           npm install -g newman-reporter-htmlextra
 
-      # 5 - Create reports folder
-      - name: Create Reports Folder
+      - name: Create reports folder
         run: mkdir reports
 
-      # 6 - Run Newman collection
       - name: Run Postman Collection
+        shell: pwsh
         run: |
-          newman run collections/CollectionClient2.postman_collection.json `
-          -e environments/PP.postman_environment.json `
-          -r cli,htmlextra `
-          --reporter-htmlextra-export reports/report.html
-        shell: powershell
+          newman run "collections/CollectionClient2.postman_collection.json" `
+            -e "environments/PP.postman_environment.json" `
+            -r cli,htmlextra `
+            --reporter-htmlextra-export "reports/report.html"
 
-      # 7 - Verify report
-      - name: Verify HTML Report
-        run: |
-          if (Test-Path "reports/report.html") {
-            Write-Host "Report generated successfully"
-          } else {
-            Write-Error "Report not found"
-            exit 1
-          }
-        shell: powershell
-
-      # 8 - Upload report artifact
       - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
-          name: newman-html-report
+          name: newman-report
           path: reports/report.html
 
-      # 9 - Send Email
       - name: Send Email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 587
-
+          secure: false
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
 
@@ -84,19 +60,9 @@ jobs:
           from: GitHub Actions
 
           body: |
-            Bonjour,
+            Les tests Postman sont terminés.
 
-            Les tests Postman ont été exécutés avec succès.
-
-            Repository:
-            ${{ github.repository }}
-
-            Workflow:
-            ${{ github.workflow }}
-
-            Build:
-            ${{ github.run_number }}
-
-            Le rapport HTML est en pièce jointe.
+            Repository :
+            https://github.com/yanisall1012/postman-api-test
 
           attachments: reports/report.html
