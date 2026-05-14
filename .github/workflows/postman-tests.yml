@@ -4,11 +4,22 @@ on:
   push:
     branches:
       - main
+
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choisir l environnement de test'
+        required: true
+        default: 'PP'
+        type: choice
+        options:
+          - PP
+          - TEST
+          - PROD
 
 jobs:
   newman-tests:
-    runs-on: ubuntu-latest        # ← changé : ubuntu évite les bugs de chemin Windows
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -18,6 +29,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Set environment variable
+        run: |
+          # Si déclenché manuellement → utiliser le choix
+          # Si déclenché par push → utiliser PP par défaut
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "ENV_NAME=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          else
+            echo "ENV_NAME=PP" >> $GITHUB_ENV
+          fi
+
+      - name: Show selected environment
+        run: |
+          echo "============================================"
+          echo " Environnement : ${{ env.ENV_NAME }}"
+          echo " Fichier env   : environments/${{ env.ENV_NAME }}.postman_environment.json"
+          echo " Déclencheur   : ${{ github.event_name }}"
+          echo "============================================"
 
       - name: Install Newman
         run: |
@@ -30,9 +59,10 @@ jobs:
       - name: Run Postman Collection
         run: |
           newman run "collections/CollectionClient2.postman_collection.json" \
-            -e "environments/PP.postman_environment.json" \
+            -e "environments/${{ env.ENV_NAME }}.postman_environment.json" \
             -r cli,htmlextra \
-            --reporter-htmlextra-export "reports/report.html"
+            --reporter-htmlextra-export "reports/report.html" \
+            --reporter-htmlextra-title "Rapport ${{ env.ENV_NAME }} - Run #${{ github.run_number }}"
 
       - name: Verify report exists
         run: ls -la reports/
@@ -40,7 +70,7 @@ jobs:
       - name: Upload HTML Report (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: newman-report
+          name: newman-report-${{ env.ENV_NAME }}
           path: reports/report.html
 
       - name: Send Email with HTML Report
@@ -51,8 +81,8 @@ jobs:
           secure: false
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "GitHub Actions - Newman Report - ${{ job.status }}"
-          to: yanisall1012@gmail.com
+          subject: "GitHub Actions - Newman [${{ env.ENV_NAME }}] - Run #${{ github.run_number }} - ${{ job.status }}"
+          to: yanisall1012@gmail.com, y.djamel@dsyconsulting.fr
           from: GitHub Actions <${{ secrets.EMAIL_USERNAME }}>
           html_body: file://reports/report.html
           attachments: ${{ github.workspace }}/reports/report.html
